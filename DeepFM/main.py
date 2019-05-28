@@ -1,51 +1,48 @@
 from deepfm import KerasDeepFM
 from DataLoader import DataLoader
 import config
-import numpy as np 
+import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder 
+from sklearn.preprocessing import LabelEncoder
 import gc
-
+from keras.models import load_model
 
 
 if __name__ == "__main__":
-    print("starting read data...")
-    dl = DataLoader(10000000)
-    LE_list = []
+    has_model = False
+    if has_model:
+        kfm = load_model(config.MODEL_FILE)
+    else:
+        print("starting read data and preprocessing data...")
+        dl = DataLoader(10000000)
+        feat_dict = le.get_feature_dict()
 
+        kfm = KerasDeepFM(8, feat_dict)
 
-    if not LE_list:
-        for f in batch.columns:
-            LE_list.append(LabelEncoder())
-            
-    batch = dl.get_next()
-    print("starting preprocessing data...")
-    for col in config.CATEGORECIAL_COLS:
-        lel = LabelEncoder()
-        data[col] = lel.fit_transform(data[col])
-    feat_dict = preprocess_data(data)
-    
-    train = data.iloc[:train_cols]
-    test = data.iloc[train_cols:]
-    del data
-    gc.collect()
-        
-    
-    x_train,x_val,y_train,y_val = train_test_split(train[config.NUMERIC_COLS+config.CATEGORECIAL_COLS],train['label'],test_size=0.8,random_state=config.RANDOMSTATE)
-    x_train = x_train.values.T
-    x_train = [np.array(x_train[i,:]) for i in range(x_train.shape[0])]
-    y_train = y_train.values
+        loop = True
+        i = 0
+        while loop:
+            try:
+                print('starting load No.%d Batch...' % i)
+                batch = dl.get_next()
+                x_train,x_val,y_train,y_val = train_test_split(batch[config.NUMERIC_COLS+config.CATEGORECIAL_COLS],batch['label'],test_size=0.8,random_state=config.RANDOMSTATE)
+                x_train = x_train.values.T
+                x_train = [np.array(x_train[i,:]) for i in range(x_train.shape[0])]
+                y_train = y_train.values
 
-    x_val = x_val.values.T
-    x_val = [np.array(x_val[i,:]) for i in range(x_val.shape[0])]
-    y_val = y_val.values
+                x_val = x_val.values.T
+                x_val = [np.array(x_val[i,:]) for i in range(x_val.shape[0])]
+                y_val = y_val.values
 
-
-    print("train model...")
-    kfm = KerasDeepFM(8, feat_dict)
-    kfm.fit(x_train, y_train, x_val, y_val)
-
+                print('starting train No.%d Batch...' % i)
+                kfm.fit(x_train, y_train, x_val, y_val)
+                i += 1
+            except StopIteration:
+                loop = False
+                print("training is stopped.")
+        kfm.save()
     if 1:
+        test = dl.get_test()
         sub = test['label']
         test = test[config.NUMERIC_COLS+config.CATEGORECIAL_COLS]
         test = test.values.T

@@ -77,7 +77,8 @@ class KerasDeepFM(object):
         y_pred = self.model.predict(x)
         return y_pred
 
-
+    def save():
+        self.model.save(config.MODEL_FILE) 
 
 
 
