@@ -20,31 +20,34 @@ class DataLoader():
         else:
             feature_dict = {}
             le_dict = {}
-            reader = pd.read_csv('../train_20190518.csv',header=None, chunksize=10000000)
-            # ignore  operTime 
-            for each in ['uId','adId','siteId','slotId','contentId','netType']:
+            reader = pd.read_csv(config.TRAIN_FILE,header=None, chunksize=10000000)
+            
+            
+            for each in ['uId','adId','operTime','siteId','slotId','contentId','netType']:
                 feature_dict[each] = set()
             for each in reader:
                 each.columns = ['label','uId','adId','operTime','siteId','slotId','contentId','netType']
                 each.fillna(-1,inplace=True)
-                for f in ['uId','adId','siteId','slotId','contentId','netType']:
+
+                each['operTime'] = each['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])))
+
+                for f in ['uId','adId','operTime','siteId','slotId','contentId','netType']:
                     feature_dict[f] |= set(each[f].unique())
             
 
-        self.ad_info = pd.read_csv('../ad_info.csv',header=None)
+        self.ad_info = pd.read_csv('../data/ad_info.csv',header=None)
         self.ad_info.columns = ['adId','billId','primId','creativeType','intertype','spreadAppId']
-        for f in ['adId','primId','creativeType','intertype']:
-            self.ad_info[f] = self.ad_info[f].astype(np.int32)
-        del self.ad_info['spreadAppId']
         self.ad_info.fillna(-1,inplace=True)
+        for f in ['adId','primId','creativeType','intertype','spreadAppId']:
+            self.ad_info[f] = self.ad_info[f].astype(np.int32)
 
-        self.user_info = pd.read_csv('../user_info.csv',header=None)
+        self.user_info = pd.read_csv('../data/user_info.csv',header=None)
         self.user_info.columns = ['uId','age','gender','city','province','phoneType','carrier']
         for f in ['age','gender','city','province','phoneType','carrier']:
             self.user_info[f] = self.user_info[f].astype(np.float32)
         self.user_info.fillna(-1,inplace=True)
 
-        self.content_info = pd.read_csv('../content_info.csv',header=None)
+        self.content_info = pd.read_csv('../data/content_info.csv',header=None)
         self.content_info.columns=['contentId','firstClass','secondClass']
         self.content_info['contentId'] = self.content_info['contentId'].astype(np.int32)
         #content_info['secondClass'] = content_info['secondClass'].apply(lambda x: x.split('#') if isinstance(x,str) else [])
@@ -73,8 +76,20 @@ class DataLoader():
         del feature_dict
         del le_dict
         gc.collect()
-        self.reader = pd.read_csv('../train_20190518.csv',header=None, iterator=True)
+        self.reader = pd.read_csv(config.TRAIN_FILE,header=None, iterator=True)
 
+    # 3-7 7-13  13-16  16-20 21-3
+    def operTime_map(x):
+        if x>=3 and x<7:
+            return 0
+        elif x >=7 and x<13:
+            return 1
+        elif x>=13 and x<16:
+            return 2
+        elif x>=16 and x<20:
+            return 3
+        else:
+            return 4
     def get_feature_dict():
         return self.feature_dict
 
@@ -87,16 +102,20 @@ class DataLoader():
         batch = batch.merge(user_info,on='uId',how='left')
         batch = batch.merge(ad_info,on='adId',how='left')
         batch = batch.merge(content_info,on='contentId',how='left')
-        del batch['operTime']
+        
+        batch['operTime'] = batch['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])))
+
         batch.fillna(-1,inplace=True)
         for key in self.le_dict.keys():
             batch[key] = self.le_dict.transform(batch[key])
         return batch
 
     def get_test():
-        test = pd.read_csv('../test_20190518.csv',header=None)
+        test = pd.read_csv(config.TEST_FILE,header=None)
         test.columns = ['label','uId','adId','operTime','siteId','slotId','contentId','netType']
-        del test['operTime']
+
+        test['operTime'] = test['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])))
+
         test = test.merge(user_info,on='uId',how='left')
         test = test.merge(ad_info,on='adId',how='left')
         test = test.merge(content_info,on='contentId',how='left')

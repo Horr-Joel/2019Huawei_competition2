@@ -14,10 +14,10 @@ if __name__ == "__main__":
         kfm = load_model(config.MODEL_FILE)
     else:
         print("starting read data and preprocessing data...")
-        dl = DataLoader(10000000)
+        dl = DataLoader(config.TRAIN_BATCH_SIZE)
         feat_dict = le.get_feature_dict()
 
-        kfm = KerasDeepFM(8, feat_dict)
+        kfm = KerasDeepFM(config.EMBEDDING_SIZE, feat_dict)
 
         loop = True
         i = 0
@@ -35,7 +35,7 @@ if __name__ == "__main__":
                 y_val = y_val.values
 
                 print('starting train No.%d Batch...' % i)
-                kfm.fit(x_train, y_train, x_val, y_val)
+                kfm.fit(x_train, y_train, x_val, y_val,config.EPOCH,config.BATCH_SIZE)
                 i += 1
             except StopIteration:
                 loop = False

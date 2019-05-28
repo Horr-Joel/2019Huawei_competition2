@@ -68,10 +68,10 @@ class KerasDeepFM(object):
         y = Dense(1,activation='sigmoid')(y)                        #None*1
         self.model = Model(inputs=input_cols, outputs=[y])
         # self.model.summary()
-        self.model.compile(optimizer=Adam(lr=0.01,decay=0.1), loss='binary_crossentropy',metrics=[jacek_auc])
+        self.model.compile(optimizer=Adam(lr=0.01,decay=0.1), loss='binary_crossentropy',metrics=[auc])
 
-    def fit(self, x_train, y_train,x_val,y_val):
-        self.model.fit(x_train, y_train, batch_size=64, epochs=5, validation_data=(x_val,y_val))
+    def fit(self, x_train, y_train,x_val,y_val,epochs,batch_size):
+        self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val,y_val))
 
     def predict(self,x):
         y_pred = self.model.predict(x)
