@@ -8,28 +8,32 @@ import config
 from keras.metrics import binary_accuracy
 from metrics import auc
 import warnings
+#import tensorflow as tf
+#from keras import backend as K
 warnings.filterwarnings('ignore')
 
-
+#with tf.Session(config=tf.ConfigProto(inter_op_parallelism_threads=0, intra_op_parallelism_threads=0)) as sess:
+#    K.set_session(sess)
 
 class KerasDeepFM(object):
     def __init__(self,k, feat_dict):
         # k is the number of embedding dim
         # feat_dict is the unique number of every features
-        
-        #numeric cols
         input_cols = []
-        numeric_cols = []
         embed_col = []
-        for col in config.NUMERIC_COLS:
-            in_neu = Input(shape=(1,), name=col)            #None*1
-            input_cols.append(in_neu)
-            in_embed = RepeatVector(1)(Dense(k)(in_neu))    #None*1*k
-            numeric_cols.append(in_neu)
-            embed_col.append(in_embed)
-        con_numeric = Concatenate(axis=1)(numeric_cols)        #None*len(config.NUMERIC_COLS)
-        dense_numeric = RepeatVector(1)(Dense(1)(con_numeric))    #None*1*1
-        
+        if config.NUMERIC_COLS:
+            #numeric cols
+            numeric_cols = []
+            for col in config.NUMERIC_COLS:
+                in_neu = Input(shape=(1,), name=col)            #None*1
+                input_cols.append(in_neu)
+                in_embed = RepeatVector(1)(Dense(k)(in_neu))    #None*1*k
+                numeric_cols.append(in_neu)
+                embed_col.append(in_embed)
+
+            con_numeric = Concatenate(axis=1)(numeric_cols)        #None*len(config.NUMERIC_COLS)
+            dense_numeric = RepeatVector(1)(Dense(1)(con_numeric))    #None*1*1
+            
         #categorical cols
         categorical_cols = []
         for col in config.CATEGORECIAL_COLS:
@@ -41,7 +45,10 @@ class KerasDeepFM(object):
             categorical_cols.append(cate_embedding)
         con_cate = Concatenate(axis=1)(categorical_cols)        #None*len(config.CATEGORECIAL_COLS)*1
         #first order
-        y_first_order = Concatenate(axis=1)([dense_numeric, con_cate])         #None*len*1
+        if config.NUMERIC_COLS:
+            y_first_order = Concatenate(axis=1)([dense_numeric, con_cate])         #None*len*1
+        else:
+            y_first_order = con_cate
         y_first_order = MySumLayer(axis=1)(y_first_order)                #None*1
 
         #second order

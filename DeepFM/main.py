@@ -15,7 +15,7 @@ if __name__ == "__main__":
     else:
         print("starting read data and preprocessing data...")
         dl = DataLoader(config.TRAIN_BATCH_SIZE)
-        feat_dict = le.get_feature_dict()
+        feat_dict = dl.get_feature_dict()
 
         kfm = KerasDeepFM(config.EMBEDDING_SIZE, feat_dict)
 
@@ -25,7 +25,7 @@ if __name__ == "__main__":
             try:
                 print('starting load No.%d Batch...' % i)
                 batch = dl.get_next()
-                x_train,x_val,y_train,y_val = train_test_split(batch[config.NUMERIC_COLS+config.CATEGORECIAL_COLS],batch['label'],test_size=0.8,random_state=config.RANDOMSTATE)
+                x_train,x_val,y_train,y_val = train_test_split(batch[config.NUMERIC_COLS+config.CATEGORECIAL_COLS],batch['label'],test_size=0.2,random_state=config.RANDOMSTATE)
                 x_train = x_train.values.T
                 x_train = [np.array(x_train[i,:]) for i in range(x_train.shape[0])]
                 y_train = y_train.values
