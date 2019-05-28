@@ -5,6 +5,20 @@ import gc
 import os
 import pickle
 from sklearn.preprocessing import LabelEncoder 
+
+# 3-7 7-13  13-16  16-20 21-3
+def operTime_map(x):
+    if x>=3 and x<7:
+        return 0
+    elif x >=7 and x<13:
+        return 1
+    elif x>=13 and x<16:
+        return 2
+    elif x>=16 and x<20:
+        return 3
+    else:
+        return 4
+
 class DataLoader():
     def __init__(self,chunksize, **kwargs):
         self.chunksize = chunksize
@@ -78,25 +92,14 @@ class DataLoader():
         gc.collect()
         self.reader = pd.read_csv(config.TRAIN_FILE,header=None, iterator=True)
 
-    # 3-7 7-13  13-16  16-20 21-3
-    def operTime_map(x):
-        if x>=3 and x<7:
-            return 0
-        elif x >=7 and x<13:
-            return 1
-        elif x>=13 and x<16:
-            return 2
-        elif x>=16 and x<20:
-            return 3
-        else:
-            return 4
-    def get_feature_dict():
+
+    def get_feature_dict(self):
         return self.feature_dict
 
-    def get_feature_le():
+    def get_feature_le(self):
         return self.le_dict
 
-    def get_next():
+    def get_next(self):
         batch = self.reader.get_chunk(self.chunksize)
         batch.columns = ['label','uId','adId','operTime','siteId','slotId','contentId','netType']
         batch = batch.merge(user_info,on='uId',how='left')
@@ -110,7 +113,7 @@ class DataLoader():
             batch[key] = self.le_dict.transform(batch[key])
         return batch
 
-    def get_test():
+    def get_test(self):
         test = pd.read_csv(config.TEST_FILE,header=None)
         test.columns = ['label','uId','adId','operTime','siteId','slotId','contentId','netType']
 
