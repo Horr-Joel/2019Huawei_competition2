@@ -6,7 +6,7 @@ from mylayers import MySumLayer
 from keras.optimizers import Adam
 import config
 from keras.metrics import binary_accuracy
-from metrics import auc
+from metrics import auc, RocAucMetricCallback
 import warnings
 #import tensorflow as tf
 #from keras import backend as K
@@ -78,7 +78,8 @@ class KerasDeepFM(object):
         self.model.compile(optimizer=Adam(lr=0.01,decay=0.1), loss='binary_crossentropy',metrics=[auc])
 
     def fit(self, x_train, y_train,x_val,y_val,epochs,batch_size):
-        self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val,y_val))
+        myCallback=RocAucMetricCallback(validation_data=(test_data,test_label)) 
+        self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val,y_val),callbacks=[myCallback])
 
     def predict(self,x):
         y_pred = self.model.predict(x)
