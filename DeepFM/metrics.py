@@ -1,31 +1,7 @@
 import tensorflow as tf
 import keras.backend as K
-import numpy as np 
+import numpy as np
 
-class RocAucMetricCallback(keras.callbacks.Callback):
-    def __init__(self,validation_data):
-        self.x_val,self.y_val=validation_data
-    def on_epoch_begin(self,epoch,logs={}):
-        #添加roc_auc_val属性
-        starttime=time.time()
-        if not ('roc_auc_val' in self.params['metrics']):
-            self.params['metrics'].append('roc_auc_val')
-        if not ('costtime' in self.params['metrics']):
-            self.params['metrics'].append('costtime')
-        return starttime
-    def on_epoch_end(self,epoch,logs={}):
-        starttime=self.on_epoch_begin(epoch)
-        nowtime=time.time()
-
-        costtime=nowtime-starttime
-        #costtime=time.time()
-        #print(costtime)
-        y_pre=model.predict(self.x_val)
-        logs['roc_auc_val']=float('-inf')
-        if(self.validation_data):
-            logs['roc_auc_val']=roc_auc_score(self.y_val.flatten(),y_pre.flatten())
-            logs['costtime']=costtime
-        print('auc:{auc},costtime:{costtime}'.format(auc=logs.get('roc_auc_val'),costtime=logs.get('costtime')))
 
 # FROM https://www.kaggle.com/c/porto-seguro-safe-driver-prediction/discussion/41015
 # AUC for a binary classifier

@@ -1,10 +1,10 @@
-import pandas as pd 
+import pandas as pd
 import numpy as np
 import config
 import gc
 import os
 import pickle
-from sklearn.preprocessing import LabelEncoder 
+from sklearn.preprocessing import LabelEncoder
 from collections import defaultdict as dd
 # 3-7 7-13  13-16  16-20 21-3
 def operTime_map(x):
@@ -24,7 +24,7 @@ class DataLoader():
         self.chunksize = chunksize
         # has feature nunique dict and feature labelencoder dict？
         has_dict = False
-        
+
         print('load feature dict...')
         if os.path.exists('../data/feature_dict.bin'):
             has_dict = True
@@ -36,19 +36,17 @@ class DataLoader():
             feature_dict = dd(set)
             le_dict = {}
             reader = pd.read_csv(config.TRAIN_FILE,header=None, chunksize=self.chunksize)
-            
-            
-            for each in ['uId','adId','operTime','siteId','slotId','contentId','netType']:
-                feature_dict[each] = set()
+
             for each in reader:
                 each.columns = ['label','uId','adId','operTime','siteId','slotId','contentId','netType']
                 each.fillna(-1,inplace=True)
-
+                each['contentId'] = each['contentId'].astype(np.int32)
                 each['operTime'] = each['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])) if x!=-1 else x)
 
-                for f in ['uId','adId','operTime','siteId','slotId','contentId','netType']:
+                # ignore uId
+                for f in ['adId','operTime','siteId','slotId','contentId','netType']:
                     feature_dict[f] |= set(each[f].unique())
-            
+
         print('load ad info...')
         self.ad_info = pd.read_csv('../data/ad_info.csv',header=None)
         self.ad_info.columns = ['adId','billId','primId','creativeType','intertype','spreadAppId']
@@ -71,13 +69,15 @@ class DataLoader():
         self.content_info.fillna('Nan',inplace=True)
 
         self.content_info['firstClass'] = LabelEncoder().fit_transform(self.content_info['firstClass'])
+        # remain be improved
         self.content_info['secondClass'] = LabelEncoder().fit_transform(self.content_info['secondClass'])
 
         if not has_dict:
             for each in self.ad_info.columns:
                 feature_dict[each] |= set(self.ad_info[each].unique())
             for each in self.user_info.columns:
-                feature_dict[each] |= set(self.user_info[each].unique())
+                if each != 'uId':
+                    feature_dict[each] |= set(self.user_info[each].unique())
             for each in self.content_info.columns:
                 feature_dict[each] |= set(self.content_info[each].unique())|set([-1])
 
@@ -86,7 +86,7 @@ class DataLoader():
                 le.fit(list(feature_dict[key]))
                 le_dict[key] = le
                 feature_dict[key] = len(feature_dict[key])
-            save_file=open("feature_dict.bin","wb")
+            save_file=open("../data/feature_dict.bin","wb")
             pickle.dump(feature_dict,save_file)
             pickle.dump(le_dict,save_file)
             save_file.close()
@@ -111,10 +111,12 @@ class DataLoader():
         batch = batch.merge(self.user_info,on='uId',how='left')
         batch = batch.merge(self.ad_info,on='adId',how='left')
         batch = batch.merge(self.content_info,on='contentId',how='left')
-        
-        batch['operTime'] = batch['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])))
-
         batch.fillna(-1,inplace=True)
+        batch['operTime'] = batch['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])))
+        batch['contentId'] = batch['contentId'].astype(np.int32)
+
+        del batch['uId']
+
         for key in self.le_dict.keys():
             batch[key] = self.le_dict[key].transform(batch[key])
         return batch
@@ -125,8 +127,23 @@ class DataLoader():
 
         test['operTime'] = test['operTime'].apply(lambda x: operTime_map(int(x.split(' ')[1][:2])))
 
-        test = test.merge(user_info,on='uId',how='left')
-        test = test.merge(ad_info,on='adId',how='left')
-        test = test.merge(content_info,on='contentId',how='left')
+        test = test.merge(self.user_info,on='uId',how='left')
+        test = test.merge(self.ad_info,on='adId',how='left')
+        test = test.merge(self.content_info,on='contentId',how='left')
+        del test['uId']
         test.fillna(-1,inplace=True)
+        test['contentId'] = test['contentId'].astype(np.int32)
+        f=open("../data/contentId_nan.bin","rb")
+        contentId_nan = pickle.load(f)
+        contentId_nan = set(contentId_nan)
+        f.close()
+        test['contentId'] = test['contentId'].apply(lambda x: -1 if x in contentId_nan else x)
+        # the 4 of siteId only appears on the testset
+        test['siteId'] = test['siteId'].apply(lambda x:6 if x==4 else x)
+        # the 38 of slotId only appears on the testset
+        test['slotId'] = test['siteId'].apply(lambda x:63 if x==38 else x)
+
+        for key in self.le_dict.keys():
+            test[key] = self.le_dict[key].transform(test[key])
+
         return test

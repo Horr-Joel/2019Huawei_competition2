@@ -10,13 +10,13 @@ SUB_DIR = './output'
 RANDOMSTATE = 2019
 
 EPOCH = 1
-BATCH_SIZE = 64
+BATCH_SIZE = 2048
 EMBEDDING_SIZE = 8
 
-TRAIN_BATCH_SIZE = 5000000
+TRAIN_BATCH_SIZE = 6000000
 
 CATEGORECIAL_COLS =[
-    'uId','adId','siteId','slotId','contentId','netType',
+    'adId','siteId','slotId','contentId','netType',
     'firstClass','secondClass','age','gender','city','province','phoneType','carrier',
     'billId','primId','creativeType','intertype','spreadAppId','operTime'
 ]
@@ -26,5 +26,5 @@ NUMERIC_COLS = [
 ]
 
 IGNORE_COLS = [
-    
+    'uId'
 ]

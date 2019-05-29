@@ -1,4 +1,4 @@
-import numpy as np 
+import numpy as np
 from keras.layers import Input, Dense, Embedding, Add, Concatenate, RepeatVector,Multiply,Subtract,Lambda,Dropout,Reshape,Flatten
 from keras.models import Model
 from keras.utils import plot_model
@@ -6,7 +6,7 @@ from mylayers import MySumLayer
 from keras.optimizers import Adam
 import config
 from keras.metrics import binary_accuracy
-from metrics import auc, RocAucMetricCallback
+from metrics import auc
 import warnings
 #import tensorflow as tf
 #from keras import backend as K
@@ -33,7 +33,7 @@ class KerasDeepFM(object):
 
             con_numeric = Concatenate(axis=1)(numeric_cols)        #None*len(config.NUMERIC_COLS)
             dense_numeric = RepeatVector(1)(Dense(1)(con_numeric))    #None*1*1
-            
+
         #categorical cols
         categorical_cols = []
         for col in config.CATEGORECIAL_COLS:
@@ -53,17 +53,17 @@ class KerasDeepFM(object):
 
         #second order
         emb = Concatenate(axis=1)(embed_col)                        #None*s*k
-            
+
         summed_feature_emb = MySumLayer(axis=1)(emb)                #None*k
         summed_feature_emb_squred = Multiply()([summed_feature_emb,summed_feature_emb])    #None*k
 
         squared_feature_emb = Multiply()([emb,emb])                    #None*s*k
         squared_sum_feature_emb = MySumLayer(axis=1)(squared_feature_emb)    #None*k
-        
+
         sub = Subtract()([summed_feature_emb_squred,squared_sum_feature_emb])    #None*k
         sub = Lambda(lambda x: x*0.5)(sub)                        #None*k
         y_second_order = MySumLayer(axis=1)(sub)                    #None*1
-        
+
         #deep order
         y_deep = Flatten()(emb)                                #None*(s*k)
         y_deep = Dropout(0.5)(Dense(32,activation='relu')(y_deep))            #None*32
@@ -78,15 +78,14 @@ class KerasDeepFM(object):
         self.model.compile(optimizer=Adam(lr=0.01,decay=0.1), loss='binary_crossentropy',metrics=[auc])
 
     def fit(self, x_train, y_train,x_val,y_val,epochs,batch_size):
-        myCallback=RocAucMetricCallback(validation_data=(test_data,test_label)) 
-        self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val,y_val),callbacks=[myCallback])
+        self.model.fit(x_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(x_val,y_val))
 
     def predict(self,x):
         y_pred = self.model.predict(x)
         return y_pred
 
-    def save():
-        self.model.save(config.MODEL_FILE) 
+    def save(self):
+        self.model.save(config.MODEL_FILE)
 
 
 

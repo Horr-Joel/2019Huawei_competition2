@@ -1,6 +1,6 @@
 from keras.engine.topology import Layer
-from keras import backend as K 
-import tensorflow as tf 
+from keras import backend as K
+import tensorflow as tf
 import numpy as np
 
 
@@ -33,7 +33,7 @@ class MyMeanPool(Layer):
 		return tuple(output_shape)
 
 class MySumLayer(Layer):
-	def __init__(self, axis, **kwargs):
+	def __init__(self, axis=1, **kwargs):
 		self.supports_masking = True
 		self.axis = axis
 		super(MySumLayer, self).__init__(**kwargs)

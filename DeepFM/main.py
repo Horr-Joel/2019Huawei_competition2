@@ -2,26 +2,27 @@ from deepfm import KerasDeepFM
 from DataLoader import DataLoader
 import config
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import gc
 from keras.models import load_model
-
-
+from mylayers import MySumLayer
+from metrics import auc
 if __name__ == "__main__":
-    has_model = False
+    has_model = True
+    dl = DataLoader(config.TRAIN_BATCH_SIZE)
     if has_model:
-        kfm = load_model(config.MODEL_FILE)
+        kfm = load_model(config.MODEL_FILE, custom_objects={'MySumLayer':MySumLayer,'auc':auc})
     else:
         print("starting read data and preprocessing data...")
-        dl = DataLoader(config.TRAIN_BATCH_SIZE)
         feat_dict = dl.get_feature_dict()
-
         kfm = KerasDeepFM(config.EMBEDDING_SIZE, feat_dict)
 
         loop = True
         i = 0
-        while loop:
+        maxturn = 2
+        while loop and i < maxturn:
             try:
                 print('starting load No.%d Batch...' % i)
                 batch = dl.get_next()
@@ -37,21 +38,24 @@ if __name__ == "__main__":
                 print('starting train No.%d Batch...' % i)
                 kfm.fit(x_train, y_train, x_val, y_val,config.EPOCH,config.BATCH_SIZE)
                 i += 1
+                kfm.save()
             except StopIteration:
                 loop = False
                 print("training is stopped.")
-        kfm.save()
+
     if 1:
+        print('start load testset...')
         test = dl.get_test()
-        sub = test['label']
+        sub = pd.DataFrame(test['label'].values,columns=['id'])
         test = test[config.NUMERIC_COLS+config.CATEGORECIAL_COLS]
         test = test.values.T
         test = [np.array(test[i,:]) for i in range(test.shape[0])]
+
+        print('start predict testset...')
         predict = kfm.predict(test)
 
         sub['probability'] = predict
-        sub.columns = ['id','probability']
-        sub.to_csv('./output/submission.csv',index=False)
+        sub.to_csv('../output/submission.csv',index=False)
 
 
 
